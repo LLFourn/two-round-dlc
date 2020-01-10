@@ -1,0 +1,343 @@
+\documentclass{article}
+
+	\addtolength{\oddsidemargin}{-.875in}
+	\addtolength{\evensidemargin}{-.875in}
+	\addtolength{\textwidth}{1.75in}
+
+	\addtolength{\topmargin}{-.875in}
+	\addtolength{\textheight}{1.75in}
+
+\usepackage[utf8]{inputenc}
+\usepackage[n,advantage,operators,sets,adversary,landau,probability,notions,logic,ff, mm, primitives,events,complexity,asymptotics,keys]{cryptocode}
+\usepackage{wrapfig}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+
+
+
+\theoremstyle{definition}
+\newtheorem{claim}{Claim}[section]
+\newtheorem{conjecture}{Conjecture}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{remark}{Remark}
+
+
+\title{Two Round Discreet Log Contracts: \\ How to Make a Prediction Market On Twitter with Bitcoin \\ (Extended Abstract)}
+\author{Lloyd Fournier}
+\date{September 2019}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+  % Prediction markets
+
+  % Prediction markets have often been cited as a compelling use of distributed ledgers.
+
+  In the blockchain world, an ``Oracle'' is a trusted party who attests to the state of the world so that \emph{smart contracts} may settle based on some real world event. In his work \emph{Discreet Log Contracts} (DLC) Dryja puts forward a compelling design for oracles on Bitcoin-like systems. In their model oracles do not interact with the smart contract or blockhain directly. Instead they simply reveal secret information based on the outcome which the participants use to settle their contract.
+
+  In this work, we show how to optimise this construction for events with binary outcomes. Our protocol requires only two rounds of communication for the contract setup and only two on-chain transactions for settlement. The setup messages are small enough so that they can be encoded in a single tweet or text message. This circumvents the need for a prediction market ``exchange'' and for a peer-to-peer communication channel to execute the protocol. Instead, users use their existing social media and messaging channels to both find other users to trade with and to exchange the necessary cryptographic information for the protocol setup.
+
+\end{abstract}
+
+\section{Introduction}
+
+
+\begin{wrapfigure}{r}{8.5cm}
+  \centering
+  \vspace{-1cm}
+  \includegraphics[width=8.5cm]{twitter.png}
+  % \caption{A visual sketch of the two-round DLC setup. Alice posts an event she wishes to bet on along with the oracle she wishes to use and some cryptographic information encoded in base2048. Bob1 and Bob2 reply with their encrypted offers.}
+\end{wrapfigure}
+
+In a blockchain based prediction market, participants bet coins on the outcome of real world events.
+To settle the bets securely, constructions must rely on one or more third parties, called \textit{oracles} to cryptographically attest to the state of the real world. The idea of \textit{Discreet Log Contracts} (DLC) provides a compelling design for the role of oracles in the execution of smart contracts especially for Bitcoin-like blockchains. In this model, oracles don't interact with the blockchain nor do they even interact with the parties involved in the execution of the contract. Instead, the oracles attest to the outcomes by publicly publishing digital signatures on messages corresponding to the result.
+
+
+DLC oracles essentially act as \textit{oblivious trusted third parties} (OTP) in the same sense as described in the work of Camenisch et al.\cite{cryptoeprint:2011:319}. That is, the they are trusted parties but they are kept \emph{oblivious} to any concrete instance of protocol. They do not necessarily know which parties are trusting them and for which events. This of course does not completely protect against a malicious oracle per-se; the advantage is that if the two both counterparties are not the entity running the oracle and neither party informs the oracle of the bet then a malicious oracle has no way of directly interfering with the bet.
+
+% fix this
+%Furthermore, as we will show in our construction if the blockchain uses Schnorr-like signature then the on-chain transactions that fund and settle the contract look like normal payment transactions.
+
+
+\section{The Protocol}
+\newcommand{\Rec}{\textsf{Rec}}
+\newcommand{\bet}{\textsf{bet}}
+\newcommand{\hatsigma}{\hat{\sigma}}
+\newcommand{\Fund}{\textsf{Fund}}
+\newcommand{\Outcome}{\textsf{Outcome}}
+\newcommand{\KeyGen}{\textsf{KeyGen}}
+\newcommand{\win}{\textsf{win}}
+\newcommand{\Verify}{\textsf{Vrfy}}
+\newcommand{\Tx}{\textsf{Tx}}
+\newcommand{\EncVer}{\textsf{EncVrfy}}
+\newcommand{\Pdleq}{\pcalgostyle{P}_{\textsf{DLEQ}}}
+\newcommand{\Vdleq}{\pcalgostyle{V}_{\textsf{DLEQ}}}
+\newcommand{\change}{\textsf{change}}
+\newcommand{\val}{\textsf{val}}
+\newcommand{\OPCHECKMULTISIG}{\texttt{CHECKMULTISIG}_{\text{1-of-2}}}
+\newcommand{\fee}{\textsf{fee}}
+\newcommand{\Sign}{\textsf{Sign}}
+\newcommand{\EncSign}{\textsf{EncSign}}
+\newcommand{\Rx}{R_\texttt{x}}
+\newcommand{\DecSig}{\textsf{DecSig}}
+\newcommand{\TxGen}{\textsf{TxGen}}
+\newcommand{\eventid}{\textsf{event\_id}}
+\newcommand{\PRG}{\textsf{PRG}}
+\newcommand{\HKDF}{H_{\textsf{KDF}}}
+
+The protocol begins with Alice posting a message on a public message board like Twitter containing a public key, what she wants to bet on, how much she wants to bet and which inputs she will to fund the bet. Users willing to offer Alice a bet on this event then post encrypted replies. The offers contain a public key and payload encrypted by the Diffie-Hellman shared secret. Inside the payload are signatures on inputs for the $\Fund$ transaction. The output of the $\Fund$ transaction associated with the bet uses the pseudorandomly blinded public keys of the two parties combined with the oracle's public keys corresponding to the outcome of each event. Either party learning the discrete logarithm of the public key (denoted as $O_0$ or $O_1$) will be able to claim the coins.
+
+\subsection{Alice's Proposal}
+
+To make her proposal Alice decides the amount of coins $bet_0$ she wants to bet on a particular event identified by $\eventid$. She provides a list of $n_0$ inputs $I_0$ which hold at lest $bet_0$ Bitcoin in total and an (optional) change address $\change_0$ to receive the difference. Finally, she chooses a private key $x_0 \sample \ZZ_q$ and computes her corresponding public key $X_0 \gets g^{x_0}$. She posts these on the public message board. Note that she does not yet have to decide publicly which outcome she wishes to bet on.
+
+\begin{center}
+  \fbox{
+  \begin{tabular}{l|l|c}
+    Symbol & Description & size (bytes) \\ \hline
+    \eventid & A descriptor of the oracle and event the bet is on & \textsf{id} \\
+    $I_0$ & The input that Alice is using to fund the bet & $33n$ \\
+    $bet_0$ & The value that Alice will wager & 6 \\
+    $\change_0$ & A change pubkeyhash & 20 \\
+    $X_0$ & Alice's public key for the $\Fund$ output & 32 \\
+    & Total & 58 + 33n + \textsf{id} \\
+  \end{tabular}
+  }
+\end{center}
+
+
+\newcommand{\Enc}{\textsf{Enc}}
+\newcommand{\Dec}{\textsf{Dec}}
+\newcommand{\VrfyWitness}{\textsf{VerifyWitness}}
+\newcommand{\GenFund}{\textsf{GenFund}}
+\newcommand{\GenWitness}{\textsf{Witness}}
+
+\subsection{Bob's Offer}
+
+Any user who wishes to make an offer to Alice we will name Bob. Bob chooses which outcome he wants to bet $c \in \bin$ on and how much he wants to bet on it $bet_1$ given Alice's choice of $bet_0$. The ratio of $bet_1$ to $bet_0$ determine the odds for the bet as the winner will take $bet_0 + bet_1$.
+
+\begin{center}
+  \fbox{
+  \begin{tabular}{l|l|c}
+    Symbol & Description & Size (bytes) \\ \hline
+    $X_1$ & Bob's public key & 32 \\ \hline
+          & \emph{The following are encrypted as $e$} & \\
+    $c$   &  The outcome $c \in \bin$ that Bob wants to bet on & 1 \\
+    $I_1$ & The input(s) that Bob is using to fund the bet & $33n_1$  \\
+
+    $\sigma_1$ & The witness for each input & $97n_1$ \\
+    $\bet_1$ & The value that Bob will wager  & 6 \\
+    $\fee_1$ & The fee that Bob includes & 4 \\
+    $\change_1$ & A change address  & 20 \\
+    & Total &  $63 + 130n_1$ \\
+  \end{tabular}
+  }
+\end{center}
+
+
+The procedure Bob uses to generate his encrypted offer $(X_1,e)$ is denoted as $\textsf{Offer}$ below along with the algorithm to generate the $\Fund$ transaction. First Bob computes the Diffie-Hellman shared secret from $X_0$ and his private key $x_1$ and derives $r$ from it using a hash function $\HKDF$. He then uses $r$ to seed a pseudoranom generator $\PRG : \bin^l \rightarrow (\bin^{len}, \bin, \ZZ_q,\ZZ_q)$. The output $\PRG$ is used both to encrypt the payload of the message and to randomize the public keys that appear on the blockchain and the order in which they appear. Alice and Bob's keys $(X_0,X_1)$ are posted in public so if they were directly used on the blockchain as part of the
+$\OPCHECKMULTISIG$ output then it would be easy to associate the outcomes with each party and therefore who won the bet. This also hides from observers which of the Bobs that made an offer Alice actually executed the protocol (or even she executed it with any of them at all).
+
+We denote $P_0$ as Alice's proposal message
+
+\begin{center}
+  \fbox{
+    \begin{pchstack}
+  \procedure{\textsf{Offer}$(P_0, (I_i, \change_1,\bet_1, \fee))$}{
+    x_1 \sample \ZZ_q; X_1 \gets x_1G; X \gets  X_0^{x_1} \\
+    P_1 := (I_1,pk_1,\change_1,\beta_1, fee) \\
+    r \gets \HKDF(X) \\
+    (k, b, b_0,b_1) \gets \PRG(r) \\
+    \Fund \gets \GenFund(P_0,P_1,(b,b_0,b_1)) \\
+    \sigma_1 \sample \GenWitness(I_1, \Fund) \\
+    e \gets k \oplus (I_1 \Vert \sigma_1 \Vert \bet_1 \Vert \fee \Vert \change_1) \\
+    \pcreturn (e, (x_1,X_1))
+   }
+   \pchspace
+   \procedure{\textsf{GenFund}$(P_0,P_1, (b,b_0,b_1))$}{
+    (X_0,I_0,\change_0,\bet_0) := P_0 \\
+    (X_1,I_1,\change_1,\bet_1,\fee) := P_1 \\
+    Z_0 \gets X_0 + b_0G + O_{1-c} \\
+    Z_1 \gets X_1 + b_1G + O_c \\
+    \Fund \gets \Tx( \\
+    \t \texttt{inputs:} I_0 || I_1, \\
+    \t \texttt{outputs:} [ \\
+       \t \t (\OPCHECKMULTISIG(Z_b,Z_{1-b})), \bet_0 + \bet_1), \\
+       \t \t (\change_0, I_0.\textsf{value} - \bet_0), \\
+       \t \t (\change_1, I_1.\textsf{value} - \bet_1 - \fee) \\
+       \t ]) \\
+    \pcreturn \Fund
+   }
+  \end{pchstack}
+}
+\end{center}
+
+\subsection{Alice Takes Offer}
+
+Upon receiving an offer $(X_1, c)$, Alice decrypts it to check if it is deseriable to her and verifies its contents.
+
+\begin{center}
+  \fbox{
+    \procedure{\textsf{ValidateOffer}$((P_0,x_0), X_1, e)$}{
+      X \gets X_1^{x_0}; r \gets \HKDF(X) \\
+      (k, b, b_0,b_1) \gets \PRG(r) \\
+      (I_1, \sigma_1, \bet_1, \fee, \change_1) \gets k \oplus e  \\
+      P_1 := (X_1, I_1, \bet_1, \fee, \change_1) \\
+      \Fund \gets \GenFund(P_0,P_1,(b, b_0,b_1)) \\
+      \VrfyWitness(I_1,\sigma_1) \stackrel{?}{=} 1 \\
+      \sigma_0 \sample \GenWitness(I_0, \Fund) \\
+      \pcreturn (\sigma_0, \sigma_1, \Fund)
+      }
+    }
+  \end{center}
+
+  If Alice wants to execute the bet then she broadcasts the $\Fund$ transaction with witness $(\sigma_0, \sigma_1)$
+
+
+\subsection{Oracle Attests to Outcome}
+
+When the oracle decides the event they release the discrete logarithm of the corresponding outcome public key $O_0$ or $O_1$. Upon seeing $o_w$, the winner is able to compute the private key for $z_w = x_w + b_w + o_w$. With knowledge $z_w$ they construct a ECDSA signature to spend the output of the $\Fund$ transaction in a transaction of their choosing.
+
+
+
+Alice necessarily gives up more privacy by engaging in the protocol than Bob. Her initial proposal message must be publicly viewable so that she can attract offers. From this an observer learns what event she wants to bet on, and which input(s) she purports to own. One important fact that the observer does not know is which of the two outcomes Alice wishes to bet on. We wish to keep
+
+
+\subsection{Rogue Key Attack Against the Original Scheme}
+
+The original DLC proposal had no formal security analysis and indeed it seems there is a rouge key attack against the scheme as originally envisioned.
+
+
+The original DLC construction required three transactions to settle. One transaction is used to lock up the funds then a ``contract execution transaction'' puts the contract into a kind of staging state -- if the CET represents the correct outcome the participants collect their corresponding funds
+
+Unfortunately, it seems the scheme is vulnerable to rogue key attacks. Using the notation of the orginal paper each contract execution transaction can be spent based on the following rules:
+
+\[ Pub_{A_i} \lor (Pub_B \lor TimeDelay) \]
+
+This indicates that the coins can be taken by knowing the private key for $Pub_{A_i}$ or $Pub_B$ after $TimeDelay$. $Pub_{A_i}$ is similar to our $Z_0$ above in that it is composed of a key that Alice knows and the key the oracle will release. Specifically, $Pub_{A_i} = Pub_{Alice} + s_iG$ where $s_iG$ is the scalar component of the Schnorr signature that the oracle will reveal upon outcome $i$. Thus Alice will be able to construct the private key for $Pub_{A_i}$ should the oracle reveal $s_i$.
+
+Unfortunately, a malicious Alice is able to take the funds without knowing $s_iG$. If Alice selects $Pub_{Alice} \gets aG - s_iG$, then she will know the discrete logarithm of $Pub_{A_i} = Pub_{Alice} + s_iG = (aG - s_iG) + s_iG = aG$. The value $s_iG$ is public information and effectively broadcasted by the oracle making this attack very easy to pull off in practice. In order for the scheme to be secure the public key $Pub_{A_i}$ needs to be constructed fairly either by Alice providing a proof of knowledge of $Pub_{Alice}$ or by through a... As we will show below, our scheme is secure under the \emph{Knowledge of Exponent} (KEA1) assumption where we assume that because both Alice and Bob are able to use  their public keys to compute a Diffie-Hellamn shared secret, they must both know the corresponding private key.
+
+
+
+\subsection{Security of the Two-Round Scheme}
+
+We now describe the security properties of the protocol and provide an intuition for proving them. We call the basic requirement that the party who won receives the funds at the end ``fidelity''.
+
+Since the setup rounds are posted publicly we wish to minimize what can be learned from the observing the communication between the parties.
+
+
+
+\begin{itemize}
+  \item Contractual Fidelity: honest parties receive (at least) the coins they are entitled to under the rules of the contract.
+  \item Winner Privacy: No ledger observer can determine who won the bet by observing the protocol messages and the ledger.
+  \item Offer Privacy: Given the proposal, offers and blockchain transactions, all offers should be equally likely to be the chosen offer.
+\end{itemize}
+
+  There are two aspects of contractual fidelity in this case: (i) Alice must accept the offer and broadcast the fund transaction before she knowns the outcome, (ii) The party that claims the funds is only able to do so if the oracle released the corresponding key.
+
+
+  In order to break the fidelity of the contract the malicious party would have to gain coins without having won the bet. As we have just seen above, the original proposal does not ensure properly ensure this against malicious key generation. It is straightforward to see under the Knowledge of Exponent assumption that our scheme is secure
+
+  \begin{theorem}{DLOG ROM KEA1 $\implies$ Contractual Fidelity}
+    If there
+  \end{theorem}
+
+  \begin{proof}
+    any adversary who is able to do this is able to solve discrete logarithms. In addition we assume that there is an efficient extractor for an adversary who forges ECDSA signatures. We model $\PRG$ as a non-programmable random oracle.
+
+First we deal with the case of a malicious Alice, who after seeing Bob's offer, broadcasts the fund transaction and is then able to take the funds despite the Oracle not revealing $o_0$. Alice must provide a signature on $Z_0$ or $Z_1$ to spend from the $\OPCHECKMULTISIG$ 1-of-2 output. First, if she spends from $Z_1$ it is easy to see that she can solve discrete logarithms since $Z_1 = G(x_1 + b_1 + o_1)$. Since $o_1$ and $b_1$ are known to the environment it is easy to extract an arbitrary discrete logarithm of a point $Y$ simply by setting $X_1 := Y$ and returning $y = z_1 - b_1 - o_1$.
+
+First in order to decrypt Bob's offer she must have queried $\PRG$ with the Diffie-Hellman key $X = X_1^{x_0}$. From this we extract $x_0$ by the KEA1 assumption and also receive $b_0$ from the output of $\PRG(X)$.
+
+\end{proof}
+
+\begin{theorem}
+  An adversary $\adv$ who is able to distinguish
+\end{theorem}
+
+
+
+
+% \section{The Schnorr Protocol}
+% We name our two parties Alice and Bob. Alice initially proposes a event to bet on and how much she is willing to bet. After seeing her proposition people respond with how much they are willing to give Alice if she were to win (in exchange for her bet amount should they win). We call generically call each of these bidders ``Bob''. After seeing a Bid that she is satisfied with, she uses the cryptogrpahic information contained within the bid along with the private data she used to construct the following transaction scaffold:
+
+% \begin{enumerate}
+%     \item \textsf{Fund}: This spends from Alice and Bob's input into a transaction with an output locked on their joint key
+%     \item \textsf{Outcome}: This spends all the coins from \textsf{Fund} to Alice's address.
+%     \item \textsf{BobWin}: Spends all the coins from \textsf{Fund} to Bob's address.
+% \end{enumerate}
+
+% Alice will have a full signature on
+
+
+
+% \subsection{Alice's Proposal}
+
+% % Explain the motivation for each element.
+
+
+% \begin{tabular}{l|l|c}
+%     \textsf{event\_id} & A descriptor of the oracle and event the bet is on & - \\
+%     $I^A$ & The input that Alice is using to fund the bet & 32 \\
+%     $\bet^A$ & The value that Alice will wager (optional) & 8 \\
+%     $\change^A$ & Her change address (optional) & 32 \\
+%     $\win^A$ & The address that will receive the coins if she wins & 32 \\
+%     a & Alice's choice bit for the binary outcome & 1 \\
+%     $X^A$ & Alice's half of the public key for the \textsf{Fund} output & 32 \\
+%     $R_0^A$ & Her signature nonce for first outcome & 32 \\
+%     $R_1^A$ & Her signature nonce for the second outcome & 32 \\
+%     & Total & 297 \\
+% \end{tabular}
+
+% \subsection{Bob's bid}
+
+% Define $b := 1 - a$,i.e the other choice.
+
+% \begin{tabular}{l|l|c}
+%      $I^B$ & The input that Bob is using to fund the bet & 32  \\
+%      $\textsf{bet}^B$ & The value that Bob will wager (optional) & 8 \\
+%      $\textsf{change}^B$ & A change address (optional) & 32 \\
+%      $\textsf{win}^B$ & The address that will receive the coins if he wins & 32 \\
+%      $X^B$ & Bob's half of the public key for the \textsf{Fund} output & 32 \\
+%      ($R_0^B$, $s_0^B$) & His half adaptor signature for $\textsf{Outcome}_0$ & 64 \\
+%      ($R_1^B$, $s_1^B$) & His half adaptor signature for $\textsf{Outcome}_1$ & 64 \\
+%      $\alpha_I^B$ & His adaptor signature on the \textsf{Fund} for his input $I^B$ (conditioned on $\alpha_{1-c}$) & 64 \\
+%      & Total & 249 \\
+% \end{tabular}
+
+
+
+
+
+% \subsection{Security}
+% % - Prove adaptor signatures secure: They don't help you do anything other than complete an adaptor signature, also prove that generating an adaptor signature on a particular point cannot be forged
+% To cryptographic security of our protocol can be reduced to three separate claims:
+% \\
+% \\
+% \textbf{Bob receives $\alpha_{1-c}$}: If \texttt{Fund} transaction is broadcast by Alice, then Bob can extract $\alpha_{1-c} = \alpha(X,\textsf{Outcome}_{1-c}, O_{1-c})$
+% \newline
+% \newline
+% \textbf{Fund is only spent by Outcome}: A malicious party spends the \texttt{Fund} transaction's output with a transaction other than \texttt{Output} with negligible probability
+
+% % - Reduce being able to spend from Fund to knowing the private key of the other party (except for Outcome transactions)
+% % \textbf{Oracle decides outcome}: If a party broadcasts $\texttt{Outcome}_e$ then they know $o_e$ where $O_e = g^{o_e}$.
+% % - Show how both parties can extract o_e
+
+% %TODO:
+
+% % - Show the Fund transaction must reveal o_e (as an aside Bob's input adaptor signature only helps her produce a signature on Fund)
+
+
+
+
+
+\bibliography{bib.bib}{}
+\bibliographystyle{unsrt}
+
+\end{document}
