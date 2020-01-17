@@ -59,7 +59,7 @@ Our protocol is designed for the public message board setting which is naturally
 \newcommand{\Enc}{\textsf{Enc}}
 \newcommand{\Dec}{\textsf{Dec}}
 \newcommand{\VrfyWitness}{\textsf{VerifyWitness}}
-\newcommand{\GenFund}{\textsf{GenBet}}
+\newcommand{\GenFund}{\textsf{GenFund}}
 \newcommand{\GenWitness}{\textsf{Witness}}
 \newcommand{\Value}{\textsf{Value}}
 
@@ -71,7 +71,7 @@ The protocol begins with Alice posting a \emph{proposal} to the public message b
 
 \subsection{Notation}
 
-We denote Bitcoin's Secp256k1 elliptic curve group as $\G$ its order as $q$, its fixed generator as $G$ and its group operation as addition. Each party has access to a hash function for key derivation $\HKDF:\G\to\bin^{l}$ where for Bitcoin $l \geq 128$ and a pseudorandom generator $\PRG:\bin^l\to(\bin \times \ZZ_q^2 \times \bin^{\abs{m}})$ where $\abs{m}$ is the length of the payload of an offer. Both parties are assumed to have a Bitcoin wallet offering functionality ($\Value$, $\GenWitness$,$\VrfyWitness$) which (i) return the total value of a list of inputs, (ii) generate a witness for a given set of inputs in transaction and (iii) verify the validity of the given transaction witness.
+We denote Bitcoin's Secp256k1 elliptic curve group as $\G$ its order as $q$, its fixed generator as $G$ and its group operation as addition. Each party has access to a hash function for key derivation $\HKDF:\G\to\bin^{l}$ where for Bitcoin $l \geq 128$ and a pseudorandom generator $\PRG:\bin^l\to(\bin \times \ZZ_q^2 \times \bin^{\abs{m}})$ where $\abs{m}$ is the length of the payload of an offer. Both parties are assumed to have a Bitcoin wallet offering functionality ($\Value$, $\GenWitness$, $\VrfyWitness$) which (i) return the total value of a list of inputs, (ii) generate a witness for a given set of inputs in transaction and (iii) verify the validity of the given transaction witness.
 
 \subsection{Alice's Proposal}
 
@@ -90,7 +90,7 @@ To make her proposal, Alice decides the amount of coins $\bet_0$ she wants to be
     & Total & $58 + 33n_0 + \textsf{id}$ \\
   \end{tabular}
   }
-  \caption{Alice's proposal where $n_0$ is the number of inputs she uses to fund}
+  \caption{Alice's proposal where $n_0$ is the number of inputs she uses to fund.}
   \label{fig:alice-proposal}
 \end{figure}
 
@@ -101,11 +101,11 @@ An honest Alice who has received offers, but no desirable offer before the event
 
 \subsection{Bob's Offer}
 
-Anyone wishes to make an offer to Alice we will name Bob. Bob chooses which outcome $c \in \bin$ he wants to bet on and how much he wants to bet on it $\bet_1$. Each component of the offer and its size is described in Figure \ref{fig:bob-offer}. The ratio of $\bet_0$ to $\bet_1$ determine the odds for the bet as the winner will take $\bet_0 + \bet_1$. In Bitcoin as it is today, the size of Bob's offer is $63 + 130n_1$ bytes where $n_1$ is the number of inputs he uses to fund the bet. Each witness contains an ECDSA signature and the input's public key. With base2048 encoding\cite{base2048} we have a limit of 385 bytes per tweet so Bob can have at most two inputs.
+Anyone who wishes to make an offer in response to Alice's proposal we will name Bob. Bob chooses which outcome $c \in \bin$ he wants to bet on and how much he wants to bet on it $\bet_1$. Each component of the offer and its size is described in Figure \ref{fig:bob-offer}. The ratio of $\bet_0$ to $\bet_1$ determine the odds for the bet as the winner will take $\bet_0 + \bet_1$. In Bitcoin as it is today, the size of Bob's offer is $63 + 130n_1$ bytes where $n_1$ is the number of inputs he uses to fund the bet. Each witness contains an ECDSA signature and the input's public key. With base2048 encoding\cite{base2048} we have a limit of 385 bytes per tweet so Bob can have at most two inputs.
 
 Bob generates his offer using the $\textsf{Offer}$ algorithm in Figure \ref{fig:offer-alg} given Alice's proposal $P_0$. First he computes the Diffie-Hellman shared secret $X$ and uses the output of $\PRG$ to encrypt the payload of the message and to randomize the public keys that appear in the on-chain contract (including the order in which they appear). Without randomisation, it would be easy to link the public keys in the 1-of-2 $\OPCHECKMULTISIG$\cite{opcheckmultisig} (denoted $\OPCMS$) output to the keys in the messages.
 
-Note that Bob can cancel his offer by successfully spending any of the inputs in $I_1$ (as long as Alice has not confirmed the $\Fund$ transaction yet). If Alice takes a different offer then this notionally cancels his offer as well because it also invalidates the $\Fund$ transaction.
+Note that Bob can cancel his offer by successfully spending any of the inputs in $I_1$ (as long as Alice has not confirmed the $\Fund$ transaction yet). If Alice takes a different offer, then this notionally cancels his offer as well because it also invalidates the $\Fund$ transaction.
 
 \begin{figure}[!h]
 \centering
@@ -159,7 +159,7 @@ Note that Bob can cancel his offer by successfully spending any of the inputs in
    }
  \end{pchstack}
  }
- \caption{The algorithm Bob uses to generate his encrypted offer. The deterministic $\GenFund$ algorithm is used by both Alice and Bob to generate the $\Fund$ transaction. The oracle will reveal the discrete logarithm of $O_0$ or $O_1$.}
+ \caption{The \textsf{Offer} algorithm Bob uses to generate his encrypted offer. The deterministic $\GenFund$ algorithm is used by both Alice and Bob to generate the $\Fund$ transaction. The oracle will reveal the discrete logarithm of $O_0$ or $O_1$.}
  \label{fig:offer-alg}
 \end{figure}
 
