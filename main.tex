@@ -90,8 +90,7 @@ To make her proposal, Alice decides the amount of coins $\bet_0$ she wants to be
     & Total & $58 + 33n_0 + \textsf{id}$ \\
   \end{tabular}
   }
-  \caption{Alice's proposal where $n_0$ is the number of inputs she uses to fund.}
-  \label{fig:alice-proposal}
+  \caption{Alice's proposal where $n_0$ is the number of inputs she uses to fund.}\label{fig:alice-proposal}
 \end{figure}
 
 An honest Alice who has received offers, but no desirable offer before the event outcome time should cancel her proposal by spending one of the inputs in $I_0$. We discuss how to deal with a malicious Alice does not do this in Section
@@ -123,8 +122,7 @@ Note that Bob can cancel his offer by successfully spending any of the inputs in
     & Total &  $63 + 130n_1$ \\
   \end{tabular}
 }
-\caption{Bob's offer in response to Alice's proposal. His public key $X_1$ is visible while the payload is encrypted using the Diffie-Hellman shared secret between $X_0$ and $X_1$.}
-\label{fig:bob-offer}
+\caption{Bob's offer in response to Alice's proposal. His public key $X_1$ is visible while the payload is encrypted using the Diffie-Hellman shared secret between $X_0$ and $X_1$.}\label{fig:bob-offer}
 \end{figure}
 
 \begin{figure}[!h]
@@ -159,13 +157,12 @@ Note that Bob can cancel his offer by successfully spending any of the inputs in
    }
  \end{pchstack}
  }
- \caption{The \textsf{Offer} algorithm Bob uses to generate his encrypted offer. The deterministic $\GenFund$ algorithm is used by both Alice and Bob to generate the $\Fund$ transaction. The oracle will reveal the discrete logarithm of $O_0$ or $O_1$.}
- \label{fig:offer-alg}
+ \caption{The \textsf{Offer} algorithm Bob uses to generate his encrypted offer. The deterministic $\GenFund$ algorithm is used by both Alice and Bob to generate the $\Fund$ transaction. The oracle will reveal the discrete logarithm of $O_0$ or $O_1$.}\label{fig:offer-alg}
 \end{figure}
 
 \subsection{Alice Takes Offer}
 
-Alice decrypts the encrypted payload $e$ from each offer $(X_1, e)$ she receives to check if it is desirable and to verify its contents. If she wishes to accept the offer she signs her set of inputs $I_0$ with her wallet and broadcasts the $\Fund$ transaction as depicted in Figure \ref{fig:takeoffer}.
+Alice decrypts the encrypted payload $e$ from each offer $(X_1, e)$ she receives to check if it is desirable and to verify its contents. If she wishes to accept the offer she signs her set of inputs $I_0$ with her wallet and broadcasts the $\Fund$ transaction as depicted in Figure~\ref{fig:takeoffer}.
 
 \begin{figure}[!h]
   \centering
@@ -181,8 +178,7 @@ Alice decrypts the encrypted payload $e$ from each offer $(X_1, e)$ she receives
       \pcreturn ((I_0, \sigma_0), (I_1,\sigma_1), \Fund)
       }
     }
-    \label{fig:takeoffer}
-    \caption{Alice takes the encrypted offer $(X_1, e)$ by completing the witnesses needed for the $\Fund$ transaction and broadcasting it}
+    \caption{Alice takes the encrypted offer $(X_1, e)$ by completing the witnesses needed for the $\Fund$ transaction and broadcasting it}\label{fig:takeoffer}
   \end{figure}
 
 \subsection{Oracle Attests to Outcome}
@@ -203,8 +199,7 @@ Out of necessity Alice posts her initial bet proposal, with her inputs and chang
 
 Despite this, our protocol ensures two core privacy properties against a passive observer who has seen the protocol messages, the on-chain transactions and the oracle's attestation: (i) \emph{Winner Privacy}, the observer should not have any advantage in guessing whether Alice or Bob won the bet (ii) \emph{Offer Privacy}, the observer should not be able to distinguish the real offer that Alice actually accepted from those that she didn't accept. We will not prove these properties in this short paper, but conjecture that any advantage an observer would have against these would violate the assumption that $\PRG$ is a pseudorandom generator or that the Computational Diffie-Hellman problem is hard.
 
-\subsection{Post-Event Acceptance Attack}
-\label{post-event-acceptance-attack}
+\subsection{Post-Event Acceptance Attack}\label{post-event-acceptance-attack}
 There is nothing to stop a malicious Alice from accepting an offer after the outcome is already known. In our protocol, it is Bob's responsibility to protect himself against this by cancelling his offer well before the outcome is known. This is undesirable as a malicious Alice could attract hundreds of offers and if any one of them forgets to cancel their offer she has a risk-free chance of taking their money. Additionally it would require hundreds of transactions to successfully cancel all the offers. Thus, it may be prudent to only make offers to parties who have a reputation of being prompt in accepting offers or cancelling their proposal on-time.
 
 Using Bitcoin's time-lock feature we can construct a less costly solution. Unfortunately, Bitcoin does not have the notion of a transaction that is \emph{valid} only until a certain time. This would immediately solve our problem. Bitcoin does offer the ability to make a transaction \emph{invalid} until a certain time. Consider the following modification to the protocol: in the proposal message Alice additionally provides a signature on a time-locked transaction spending one of her inputs. The time-lock would be set to expire before the outcome is expected to be known. Anyone who sees the proposal could then broadcast this transaction after the expiry time (if she has not accepted an offer or cancelled it herself), thereby cancelling the proposal and all offers based on it in one transaction. The transaction could even spend the input to a burn address (where the funds would be unrecoverable) to incentivise Alice to be proactive about cancelling her proposal early.
