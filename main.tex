@@ -25,7 +25,7 @@ The most attractive aspect of the DLC model is that the oracle is an \emph{obliv
 
 \subsection{Our Contribution}
 
-We propose a novel solution to two open problems surrounding Discreet Log Contracts: (i) How should users discover other users to bet against and (ii) how should they communicate. Our idea is to leverage existing communication channels that users are already comfortable with such as social media and text messaging applications. Through these, users simulataneously find other users to bet against and communicate the necessary cryptographic information to complete the contract. Towards this end we have optimised the original protocol to only two rounds of communication, where one party \emph{proposes} an event to bet on and then others post offers in reply. Both messages fit into a single 240 character tweet (assuming a maximum of 385 bytes per tweet \cite{base2048}).
+We propose a novel solution to two open questions surrounding Discreet Log Contracts: (i) how should users discover other users to bet against? and (ii) how should they communicate? Our idea is to leverage existing communication channels that users are already comfortable with such as social media and text messaging applications. Through these, users simulataneously find other users to bet against and communicate the necessary cryptographic information to complete the contract. Towards this end, we have optimised the original protocol to only two rounds of communication, where one party \emph{proposes} an event to bet on and then others post offers in reply. Both messages fit into a single 240 character tweet (assuming a maximum of 385 bytes per tweet \cite{base2048}).
 
 Our protocol is designed for the public message board setting which is naturally less private than assuming a direct communication channel. Nevertheless, by embedding a Diffie-Hellman key exchange in the messages we manage to retain some important privacy properties even in this setting.
 
@@ -67,7 +67,11 @@ Our protocol is designed for the public message board setting which is naturally
 
 Like a typical Discreet Log Contract our protocol allows two parties to make a bet on the outcome of an event. Our protocol only works with events with binary outcomes and it is winner takes all. Neither party is assumed to have communicated with each other beforehand or have a direct communication channel. They are both expected to have an incorruptible view of the blockchain and to be able to read from and write to a public message board e.g. Twitter. Additionally both parties must be able to access the oracle's commitments and attestations.
 
-The protocol begins with Alice posting a \emph{proposal} to the public message board. The proposal includes the event she wants to bet on and how much she is willing to risk (not how much she wants to gain). In response, parties we will name Bob, post offers. Bob's offer contains how much he is willing to bet on a particular outcome happening and signatures on inputs providing that amount to the $\Fund$ transaction. Crucially, the proposal and offer contain public keys which are used in the $\OPCHECKMULTISIG$ output of $\Fund$ transaction and to create a Diffie-Hellman shared secret so Bob's offer can be encrypted. This completes the setup. Now the parties wait to learn the discrete logarithm of one of the outcome keys, after which one of them will be able to claim the coins. Note that we do not consider the possibility that the oracle could be malicious and assume they release the discrete logarithm of the correct key in a timely manner.
+The protocol begins with Alice posting a \emph{proposal} to the public message board. The proposal includes the event she wants to bet on and how much she is willing to risk (not how much she wants to gain).
+In response, parties we will name Bob, post offers. Bob's offer contains how much he is willing to bet on a particular outcome happening and signatures on inputs providing that amount to a $\Fund$ transaction.
+Crucially, the proposal and offer contain public keys which are used in the $\OPCHECKMULTISIG$ output of the $\Fund$ transaction and to create a Diffie-Hellman shared secret so Bob's offer can be encrypted.
+This completes the setup.
+Now the parties wait to learn the discrete logarithm of one of the outcome keys, after which one of them will be able to claim the coins. Note that we do not consider the possibility that the oracle could be malicious and assume they release the discrete logarithm of the correct key in a timely manner.
 
 \subsection{Notation}
 
@@ -106,7 +110,7 @@ Anyone who wishes to make an offer in response to Alice's proposal we will name 
 
 Bob generates his offer using the $\textsf{Offer}$ algorithm in Figure \ref{fig:offer-alg} given Alice's proposal $P_0$. First he computes the Diffie-Hellman shared secret $X$ and uses the output of $\PRG$ to encrypt the payload of the message and to randomize the public keys that appear in the on-chain contract (including the order in which they appear). Without randomisation, it would be easy to link the public keys in the 1-of-2 $\OPCHECKMULTISIG$\cite{opcheckmultisig} (denoted $\OPCMS$) output to the keys in the messages.
 
-Note that Bob can cancel his offer by successfully spending any of the inputs in $I_1$ (as long as Alice has not confirmed the $\Fund$ transaction yet). If Alice takes a different offer, then this notionally cancels his offer as well because it also invalidates the $\Fund$ transaction.
+Note that Bob can cancel his offer by successfully spending any of the inputs in $I_1$ (which should be easy if Alice has not confirmed the $\Fund$ transaction yet). If Alice takes a different offer, then this notionally cancels his offer as well because it also invalidates the $\Fund$ transaction.
 
 \begin{figure}[!h]
 \centering
