@@ -71,7 +71,9 @@ The protocol begins with Alice posting a \emph{proposal} to the public message b
 
 \subsection{Notation}
 
-We denote Bitcoin's Secp256k1 elliptic curve group as $\G$ its order as $q$, its fixed generator as $G$ and its group operation as addition. Each party has access to a hash function for key derivation $\HKDF:\G\to\bin^{l}$ where for Bitcoin $l \geq 128$ and a pseudorandom generator $\PRG:\bin^l\to(\bin \times \ZZ_q^2 \times \bin^{\abs{m}})$ where $\abs{m}$ is the length of the payload of an offer. Both parties are assumed to have a Bitcoin wallet offering functionality ($\Value$, $\GenWitness$, $\VrfyWitness$) which (i) return the total value of a list of inputs, (ii) generate a witness for a given set of inputs in transaction and (iii) verify the validity of the given transaction witness.
+We denote Bitcoin's Secp256k1 elliptic curve group as $\G$ its order as $q$, its fixed generator as $G$ and its group operation as addition.
+Each party has access to a hash function for key derivation $\HKDF:\G\to\bin^{l}$ where $l \geq 128$ is a reasonable choice for Bitcoin and a pseudorandom generator $\PRG:\bin^l\to(\bin \times \ZZ_q^2 \times \bin^{\abs{m}})$ where $\abs{m}$ is the length of the payload of an offer.
+Both parties are assumed to have a Bitcoin wallet offering functionality ($\Value$, $\GenWitness$, $\VrfyWitness$) which (i) return the total value of a list of inputs, (ii) generate a witness for a given set of inputs in transaction and (iii) verify the validity of the given transaction witness.
 
 \subsection{Alice's Proposal}
 
